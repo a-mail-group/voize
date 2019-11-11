@@ -1,2 +1,5 @@
 # voize
-Voize
+Voize (An educational audio codec)
+
+
+
