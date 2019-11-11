@@ -100,6 +100,12 @@ type StreamEncoder struct {
 	
 	ibuf *audio.IntBuffer
 }
+func (s *StreamEncoder) Allocate() {
+	s.Buffer = make([][]float64,s.NumChannels)
+	for i := range s.Buffer {
+		s.Buffer[i] = make([]float64,s.BlockSize)
+	}
+}
 func (s *StreamEncoder) create() {
 	if s.ibuf==nil {
 		if s.NumChannels!=len(s.Buffer) { panic("assertion failed: s.NumChannels==len(s.Buffer)") }
