@@ -110,3 +110,59 @@ func (d *MDCTViaDCT4) ProcessSplit(input_a,input_b,output []float64) {
 	d.dct.Process(d.dctbuf,output)
 }
 
+func addArF(o, a, b []float64, f float64) {
+	for i := range o {
+		o[i] = a[i]*b[i]*f
+	}
+}
+func addArR(o, a, b []float64, f float64) {
+	N1 := len(o)-1
+	for i := range o {
+		o[i] = a[N1-i]*b[i]*f
+	}
+}
+
+type IMDCTViaDCT4 struct {
+	dct DCT4
+	window []float64
+	bsize  int
+	
+	dct_in []float64
+	dctout []float64
+}
+func (d *IMDCTViaDCT4) Init(d4 DCT4Constructor, wf WindowFn, bz int) *IMDCTViaDCT4 {
+	d.window = make([]float64,bz*2)
+	wf(d.window)
+	d.dct = d4.Init(bz)
+	d.bsize = bz
+	
+	d.dct_in = make([]float64,bz)
+	d.dctout = make([]float64,bz)
+	return d
+}
+func (d *IMDCTViaDCT4) IProcessSplit(input,output_a,output_b []float64) {
+	copy(d.dct_in,input) // extend the input from possibly N/2 to N
+	
+	d.dct.Process(d.dct_in,d.dctout)
+	
+	group_size := d.bsize/2
+	/*
+	output_a[0:group_size] += dctout[group_size:LEN] * window[0:group_size]
+	*/
+	addArF(output_a[:group_size],d.dctout[group_size:],d.window[:group_size],1)
+	
+	/*
+	output_a[group_size:LEN] -= REVERSE(dctout[group_size:LEN]) * window[group_size:LEN]
+	*/
+	addArR(output_a[group_size:],d.dctout[group_size:],d.window[group_size:],-1)
+	
+	/*
+	output_b[0:group_size] -= REVERSE(dctout[0:group_size]) * window[LEN:LEN+group_size]
+	*/
+	addArR(output_b[:group_size],d.dctout[:group_size],d.window[d.bsize:],-1)
+	
+	/*
+	output_b[group_size:LEN] -= dctout[0:group_size] * window[LEN+group_size:~]
+	*/
+	addArF(output_b[group_size:],d.dctout[:group_size],d.window[d.bsize+group_size:],-1)
+}
